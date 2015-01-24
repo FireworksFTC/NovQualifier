@@ -30,7 +30,6 @@ and one wheel is stationary while the other moves when turning?
 //use the variables in the touch sensor methods.
 //Many of these variables are for looking at the
 //numbers in the methods (for debugging).
-double timeMoved;
 
 double currentx, currenty;
 
@@ -42,9 +41,6 @@ double firstPowerMotor1, firstPowerMotor2;
 int firstCompass;
 int compassValue;
 
-int totalEncoder;
-int amountForFullHeight;
-int targetEncoder;
 int currentLinearHeight;
 
 double distanceTravelled;
@@ -65,17 +61,12 @@ double timeDebug;
 
 double sideA, sideB;
 
-bool touched;
 double addedXCoordinate;
 double addedYCoordinate;
-int time;
-
-
 
 //A light push from the hook motor is used to keep the tube inside
 //its grasp.  This is a task that goes on even when the robot
 //is moving or performing other tasks.
-
 task keepHookMotorStill()
 {
 	while(true)
@@ -90,11 +81,9 @@ task keepHookMotorStill()
 	}
 }
 
-
 //This method is not needed since the direction variable is
 //replaced by the compass sensor. It says here just in case
 //it is needed sometime later.
-
 void changeDirectionVariable(double angleToChange)
 {
 	direction = angleToChange + direction;
@@ -104,10 +93,8 @@ void changeDirectionVariable(double angleToChange)
 	}
 }
 
-
 //A small method to take a bit of the length off the program.  It returns
 //how far the robot went with the formula distance = rate * time.
-
 double getDistanceBasedOnTime(double time)
 {
 	distanceTravelled = cmPerSecond * time;
@@ -116,43 +103,10 @@ double getDistanceBasedOnTime(double time)
 }
 
 
-//This method uses the touch sensor, therefore it is commented out.  It is here as a reminder of the
-//past... It was a good method in its lifetime.
-
-//void moveUntilTouch(double powerMotor1, double powerMotor2, bool needToSetSpeed, double timeInAddition)
-//{
-//	ClearTimer(T1);
-//	touched = false;
-//	while (SensorValue(touchSensor) == 0)
-//	{
-//		motor[motor1] = powerMotor1;
-//		motor[motor2] = powerMotor2;
-//	}
-//	touched = true;
-
-//	timeMoved = time1[T1] / 1000.0;
-//	time = time1[T1] + timeInAddition;
-
-//	if (needToSetSpeed == true)
-//	{
-//		cmPerSecond = 257 / timeMoved;
-//	}
-
-//	distanceTravelled = cmPerSecond * timeMoved;
-
-//	currentx = currentx + (sin(direction)*distanceTravelled);
-//	currenty = currenty + (cos(direction)*distanceTravelled);
-
-//	motor[motor1] = 0;
-//	motor[motor2] = 0;
-//}
-
-
 //This method makes use of the compas sensor, and it is needed to straighten (as the name says)
 //the robot to an angle perpendicular to the walls after it slides down the ramp. The robot's
 //weight is a bit uneven, so that may be the reason why it is about 45 degrees to the left (or northwest)
 //after it comes down.
-
 //Unlike turnNumDegrees(), this is used for numbers already calibrated
 //to the first number from the compass sensor.
 void straighten(int angleToFace)
@@ -173,7 +127,6 @@ void straighten(int angleToFace)
 	//the turnNumDegrees() method.
 
 	while (!(SensorValue[compassSensor] >  angleToFace-3 && SensorValue[compassSensor] <  angleToFace+3))
-	//while (SensorValue[compassSensor] != angleToFace)
 	{
 		//Keep on turning in the closest direction until you get the perfect number.
 		if (SensorValue[compassSensor] > angleToFace)
@@ -192,14 +145,11 @@ void straighten(int angleToFace)
 	}
 }
 
-
 //This method comes after moveToTarget(), or it can be called directly from the main method. You can independently enter
 //motor power, how long to move, if the robot is going to move backwards (the back is the side without the hook), where
 //the target will be, and if there will be drift while going down the ramp.
-
 //The target numbers can be -1 and -1 if it the targets are unknown and the robot will caculate the position it is
 //at by itself, though it might not be as accurate.
-
 void moveForTimePeriod(double powerMotor1, double powerMotor2, double time, bool moveBackwards,int xTarget,int yTarget, bool drift)
 {
 	//Turn a bit to the side the opposite side (the side the robot isn't leaning towards).
@@ -278,7 +228,6 @@ void moveForTimePeriod(double powerMotor1, double powerMotor2, double time, bool
 	}
 }
 
-
 //A variation of distance = rate * time that returns the time the robot
 //should take based on the target point and speed.
 double getTimeToTake(double xTarget, double yTarget)
@@ -333,10 +282,8 @@ void turnNumDegrees(int value)
 	//changeDirectionVariable(direction - value);
 }
 
-
 //Not needed because of compass sensor. Called by moveToTarget(), and can also be called
 //from the main method. Will turn towards the target place.
-
 void targetAngleTurn(double xTarget, double yTarget, bool moveBackwards)
 {
 	//Different ways to calculate how to get from one place to another.
@@ -354,16 +301,6 @@ void targetAngleTurn(double xTarget, double yTarget, bool moveBackwards)
 
 	//Law of Cosines
 	angleToTravel = acos((sideB*sideB - sideA*sideA - hypotenuse*hypotenuse) /	(-2*sideA*hypotenuse));
-
-	//Draw a different type of triangle (upside down or right side up).
-	//if (currenty > yTarget)
-	//{
-	//	angleToTravel = acos(sideB/hypotenuse) / PI * 180;
-	//}
-	//else
-	//{
-	//	angleToTravel = acos(sideA/hypotenuse) / PI * 180;
-	//}
 
 	addedXCoordinate = (cos(direction)*distanceTravelled);
 	addedYCoordinate = (sin(direction)*distanceTravelled);
@@ -414,12 +351,10 @@ void moveToTarget(double xTarget, double yTarget, double powerMotor1, double pow
 	moveForTimePeriod(powerMotor1, powerMotor2, getTimeToTake(xTarget,yTarget), moveBackwards, xTarget, yTarget, drift);
 }
 
-
 //Drop down the hook.
-
 void hook()
 {
-	//If it has an encoder which it doesn't
+	//Uncomment the one that isn't used (encoder or no encoder)
 
 	//hookDown = true;
 	//motor[hookMotor] = -50;
@@ -448,70 +383,40 @@ void hook()
 
 void unhook()
 {
-	bool hasEncoder = false;
+	//Uncomment the one that isn't used (encoder or no encoder)
+	//With encoder.
 
-	if (hasEncoder)
+	hookDown = false;
+	motor[hookMotor] = 50;
+	nMotorEncoder[hookMotor] = 0;
+	nMotorEncoderTarget[hookMotor] = 	140;
+	while (nMotorEncoder[hookMotor] < 140)
 	{
-		//With encoder.
-
-		hookDown = false;
-		motor[hookMotor] = 50;
-		nMotorEncoder[hookMotor] = 0;
-		nMotorEncoderTarget[hookMotor] = 	140;
-		while (nMotorEncoder[hookMotor] < 140)
-		{
-			//Idle Loop
-		}
+		//Idle Loop
 	}
-	else
-	{
-		//Without the encoder.
 
-		motor[hookMotor] = 0;
-		holdingTube = false;
+	//Without the encoder.
 
-		hookDown = false;
-		motor[hookMotor] = -5;
+	motor[hookMotor] = 0;
+	holdingTube = false;
 
-		wait1Msec(500);
+	hookDown = false;
+	motor[hookMotor] = -5;
 
-		motor[hookMotor] = 0;
-		holdingTube = false;
-	}
+	wait1Msec(500);
+
+	motor[hookMotor] = 0;
+	holdingTube = false;
 }
-
 
 //Drop balls from the container. It used to be the ziptie, but it now uses a seperate
 //servo motor. It is yet to be seen how it works.
-
 void dropBalls()
 {
-	bool firstRobot = false;
-
-	if (firstRobot)
-	{
-		//1st robot (zipties)
-		motor[ballMotor] = 50;
-		nMotorEncoder[ballMotor] = 0;
-		nMotorEncoderTarget[ballMotor] = 1080;
-		while(nMotorEncoder[ballMotor] < 1080)
-		{
-			//idle loop
-		}
-
-		motor[ballMotor] = 0;
-	}
-	else
-	{
-		//2nd robot (door)
-
-		//ADD
-	}
+	//not built
 }
 
-
 //Raise the linear slide to a given height. Max height is 4 ft. Enter the height in feet (double).
-
 void moveLinearSlide(double height)
 {
 	bool goingUp;
@@ -539,24 +444,6 @@ void moveLinearSlide(double height)
 	ClearTimer(T1);
 	while(time1(T1) < time*1000)
 	{
-		//too close.  make sure the string doesn't break
-		//but this screws with the timing part so meh ;-;
-
-		//if (time - time1(T1)*1000 < 1 && height < 0.5)
-		//{
-		//	if (goingUp == false)
-		//	{
-		//		motor[linearSlide] = -5;
-		//	}
-		//}
-
-		//if (time - time1(T1)*1000 < 1 && height < 3.5)
-		//{
-		//	if (goingUp == true)
-		//	{
-		//		motor[linearSlide] = 5;
-		//	}
-		//}
 	}
 }
 
@@ -564,11 +451,9 @@ void moveLinearSlide(double height)
 //Main method.
 task main()
 {
-	//For competition time.
-	//waitForStart();
+	waitForStart();
 
-	//Give compass sensor time to gather its BEARINGS to produce an accurate
-	//firstCompass number.
+	//Give compass sensor time to gather its BEARINGS to produce an accurate firstCompass number.
 	wait1Msec(50);
 
 	//Initialization
@@ -636,103 +521,21 @@ task main()
 
 	hook();
 
-	////Two choices
-	bool toParkingZone = true;
+	//Go to parkingzone
+	motor[motor1] = 60;
+	motor[motor2] = -30;
+	wait1Msec(2000);
 
-	if (toParkingZone)
-	{
-		//Go to parkingzone
-		motor[motor1] = 60;
-		motor[motor2] = -30;
-		wait1Msec(2000);
+	motor[motor1] = -70;
+	motor[motor2] = -70;
+	wait1Msec(5000);
 
-		motor[motor1] = -70;
-		motor[motor2] = -70;
-		wait1Msec(5000);
+	//Go back to ramp
+	motor[motor1] = 60;
+	motor[motor2] = -30;
+	wait1Msec(8000);
 
-		//Go back to ramp
-		motor[motor1] = 60;
-		motor[motor2] = -30;
-		wait1Msec(8000);
-
-		motor[motor1] = 20;
-		motor[motor2] = 20;
-		wait1Msec(2000);
-
-		//moveForTimePeriod(20,20,4,true,-1,-1,false);
-		//straighten(120+firstCompass);
-	//	while(true)
-	//	{
-	//		motor[motor1] = 0;
-	//		motor[motor2] = 0;
-	//	}
-	}
-	else
-	{
-		//Go to ramp
-		straighten(180+firstCompass);
-		moveForTimePeriod(50,50,4,true,-1,-1,false);
-		while(true)
-		{
-			motor[motor1] = 0;
-			motor[motor2] = 0;
-		}
-	}
-
-
-
-
-
-
-
-
-
-
-	/*
-	With the methods
-	*/
-
-
-	////position around tube
-	//moveToTarget(33,260,20,20,false,false); //13, 42
-
-	//to ramp
-	//moveToTarget(0,0,50,50,false,false);
-
-	////to parking zone
-	//moveToTarget(180,10,20,20,true,false); //put tube there and drop it
-	//unhook();
-	//moveToTarget(0,260,20,20,false,false);
-	//moveToTarget(0,0,50,50,false,false); //get up the ramp
-
-	//wait on the ramp
-	//while(true)
-	//{
-	//	motor[motor1] = 0;
-	//	motor[motor2] = 0;
-	//}
-
-
-
-
-	/*
-	With methods and two tubes
-	*/
-
-	//moveToTarget(15, 272, 20, 20, false);
-	//moveToTarget(0, 272, 20, 20, false);
-
-	////go to tube closest to wall
-	//straighten(firstCompass);
-	//moveForTimePeriod(20,20,2,false,0,345);
-	//hook();
-
-	////push other tube when hooking this one.
-	//moveToTarget(0,0,70, 70, true);
-
-	//while(true)
-	//{
-	//	motor[motor1] = 0;
-	//	motor[motor2] = 0;
-	//}
+	motor[motor1] = 20;
+	motor[motor2] = 20;
+	wait1Msec(2000);
 }
