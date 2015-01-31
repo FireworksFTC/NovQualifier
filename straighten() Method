@@ -1,0 +1,43 @@
+//This method makes use of the compas sensor, and it is needed to straighten (as the name says)
+//the robot to an angle perpendicular to the walls after it slides down the ramp. The robot's
+//weight is a bit uneven, so that may be the reason why it is about 45 degrees to the left (or northwest)
+//after it comes down.  Or perhaps the ramp is uneven.
+
+//Unlike turnNumDegrees(), this is used for numbers already calibrated
+//to the first number from the compass sensor.
+void straighten(int angleToFace)
+{
+	//Make sure the angle is within the boundaries of the values the compass sensor would normally give out.
+	if (angleToFace < 0)
+	{
+		angleToFace = abs(angleToFace);
+	}
+	if (angleToFace > 359)
+	{
+		angleToFace = angleToFace % 360;
+	}
+
+	//The acceptable range of the numbers the compass sensor will take as correct is extened to 7 numbers
+	//instead of one value. This is because the robot kept on spinning forever. The wild guess of the
+	//robot not finding the one specific number was made, so this was made. The change was also made for
+	//the turnNumDegrees() method.
+
+	while (!(SensorValue[compassSensor] >  angleToFace-3 && SensorValue[compassSensor] <  angleToFace+3))
+	//while (SensorValue[compassSensor] != angleToFace)
+	{
+		//Keep on turning in the closest direction until you get the perfect number.
+		if (SensorValue[compassSensor] > angleToFace)
+		{
+			motor[motor1] = 60;
+			motor[motor2] = -30;
+		}
+
+		if (SensorValue[compassSensor] < angleToFace)
+		{
+			motor[motor1] = -30;
+			motor[motor2] = 60;
+		}
+
+		compassValue = SensorValue[compassSensor];
+	}
+}
