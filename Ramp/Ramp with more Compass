@@ -1,6 +1,6 @@
 #pragma config(Hubs,  S1, HTMotor,  HTMotor,  HTServo,  none)
-#pragma config(Sensor, S1,     ,               sensorI2CMuxController)
 #pragma config(Sensor, S3,     compassSensor,  sensorI2CHiTechnicCompass)
+#pragma config(Sensor, S4,     sonarSensor,    sensorSONAR)
 #pragma config(Motor,  motorA,          ballMotor,     tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  motorC,          hookMotor,     tmotorNXT, PIDControl, reversed, encoder)
 #pragma config(Motor,  mtr_S1_C1_1,     motor1,        tmotorTetrix, openLoop)
@@ -90,91 +90,29 @@ task keepHookMotorStill()
 	{
 		if (holdingTube == true)
 		{
-			motor[hookMotor] = 1;
+			motor[hookMotor] = 20;
 		}
+		else
+		{
+			motor[hookMotor] = 0;
+		}
+
 		//This is performed every 0.1 second so it doesn't clog up
 		//the CPU of the robot.
 		wait1Msec(100);
 	}
 }
 
-
-//This method is not needed since the direction variable is
-//replaced by the compass sensor. It says here just in case
-//it is needed sometime later.
-
-void changeDirectionVariable(double angleToChange)
-{
-	direction = angleToChange + direction;
-	if (direction >= 360)
-	{
-		direction = direction - 360;
-	}
-}
-
-
-//A small method to take a bit of the length off the program.  It returns
-//how far the robot went with the formula distance = rate * time.
-
-double getDistanceBasedOnTime(double time)
-{
-	distanceTravelled = cmPerSecond * time;
-
-	return distanceTravelled;
-}
-
-
-//This method uses the touch sensor, therefore it is commented out.  It is here as a reminder of the
-//past... It was a good method in its lifetime.
-
-//void moveUntilTouch(double powerMotor1, double powerMotor2, bool needToSetSpeed, double timeInAddition)
-//{
-//	ClearTimer(T1);
-//	touched = false;
-//	while (SensorValue(touchSensor) == 0)
-//	{
-//		motor[motor1] = powerMotor1;
-//		motor[motor2] = powerMotor2;
-//	}
-//	touched = true;
-
-//	timeMoved = time1[T1] / 1000.0;
-//	time = time1[T1] + timeInAddition;
-
-//	if (needToSetSpeed == true)
-//	{
-//		cmPerSecond = 257 / timeMoved;
-//	}
-
-//	distanceTravelled = cmPerSecond * timeMoved;
-
-//	currentx = currentx + (sin(direction)*distanceTravelled);
-//	currenty = currenty + (cos(direction)*distanceTravelled);
-
-//	motor[motor1] = 0;
-//	motor[motor2] = 0;
-//}
-
-
-//This method makes use of the compas sensor, and it is needed to straighten (as the name says)
+//This method makes use of the compass sensor, and it is needed to straighten (as the name says)
 //the robot to an angle perpendicular to the walls after it slides down the ramp. The robot's
 //weight is a bit uneven, so that may be the reason why it is about 45 degrees to the left (or northwest)
 //after it comes down.
 
 //Unlike turnNumDegrees(), this is used for numbers already calibrated
-//to the first number from the compass sensor.
-void straighten(int angleToFace,bool right)
+//to the first number from the compass sensor. 0 is robot-decided, 1 is right, 2 is left.
+void straighten(int angleToFace,int way)
 {
 	//Make sure the angle is within the boundaries of the values the compass sensor would normally give out.
-	//if (angleToFace < 0)
-	//{
-	//	angleToFace = abs(angleToFace);
-	//}
-	//if (angleToFace > 359)
-	//{
-	//	angleToFace = angleToFace % 360;
-	//}
-
 	if (angleToFace < 0)
 	{
 		while (angleToFace < -360)
@@ -191,17 +129,16 @@ void straighten(int angleToFace,bool right)
 
 	}
 
-	//The acceptable range of the numbers the compass sensor will take as correct is extened to 7 numbers
+	//The acceptable range of the numbers the compass sensor will take as correct is extended to 7 numbers
 	//instead of one value. This is because the robot kept on spinning forever. The wild guess of the
 	//robot not finding the one specific number was made, so this was made. The change was also made for
 	//the turnNumDegrees() method.
 
 	while (!(SensorValue[compassSensor] >  angleToFace-3 && SensorValue[compassSensor] <  angleToFace+3))
-	//while (SensorValue[compassSensor] != angleToFace)
 	{
 		//Keep on turning in the closest direction until you get the perfect number. right overrides
 		//the SensorValue comparison turn.
-		if (((SensorValue[compassSensor] < angleToFace) != right) && (right == true))
+		if (((SensorValue[compassSensor] < angleToFace) != (way == 1)) && (way == 1))
 		{
 			//turning right
 			motor[motor1] = -20;
@@ -209,7 +146,7 @@ void straighten(int angleToFace,bool right)
 		}
 		else
 		{
-			if(((SensorValue[compassSensor] > angleToFace) != !right) && (right == false))
+			if(((SensorValue[compassSensor] > angleToFace) != (way == 2)) && (way == true))
 			{
 				motor[motor1] = 50;
 				motor[motor2] = -20;
@@ -218,14 +155,14 @@ void straighten(int angleToFace,bool right)
 			{
 				if (SensorValue[compassSensor] > angleToFace)
 				{
-					motor[motor1] = 50;
-					motor[motor2] = -20;
+					motor[motor1] = 60;
+					motor[motor2] = -90;
 				}
-		
+
 				if (SensorValue[compassSensor] < angleToFace)
 				{
-					motor[motor1] = -20;
-					motor[motor2] = 50;
+					motor[motor1] = -90;
+					motor[motor2] = 60;
 				}
 				}
 		}
@@ -233,6 +170,26 @@ void straighten(int angleToFace,bool right)
 	}
 }
 
+//Stay a certain distance from the wall.  It is to be called upon every
+//time it needs an update.
+void followWall(int compass)
+{
+	//Can make it so it doesn't have to follow a wall.
+	if (time1(T4) > 100)
+	{
+		if (SensorValue[compassSensor] > compass)
+		{
+			motor[motor1] -= 1;
+			motor[motor2] += 1;
+		}
+		if (SensorValue[compassSensor] < compass)
+		{
+			motor[motor1] += 1;
+			motor[motor2] -= 1;
+		}
+		ClearTimer(T4);
+	}
+}
 
 //This method comes after moveToTarget(), or it can be called directly from the main method. You can independently enter
 //motor power, how long to move, if the robot is going to move backwards (the back is the side without the hook), where
@@ -241,15 +198,9 @@ void straighten(int angleToFace,bool right)
 //The target numbers can be -1 and -1 if it the targets are unknown and the robot will caculate the position it is
 //at by itself, though it might not be as accurate.
 
-void moveForTimePeriod(double powerMotor1, double powerMotor2, double time, bool moveBackwards,int xTarget,int yTarget, bool drift)
+void moveForTimePeriod(double powerMotor1, double powerMotor2, double time, bool moveBackwards,
+			int xTarget,int yTarget, int distance)
 {
-	//Turn a bit to the side the opposite side (the side the robot isn't leaning towards).
-	if (drift)
-	{
-		powerMotor2 = powerMotor2*30/8;
-		powerMotor1 = powerMotor1*2/12;
-	}
-
 	//This is just in case the robot wants to go straight while moving, though it was pretty much scratched,
 	//since the robot took too much time to check if it was still going in one direction and resulted in
 	//jerky movement.
@@ -289,12 +240,13 @@ void moveForTimePeriod(double powerMotor1, double powerMotor2, double time, bool
 		motor[motor2] = -powerMotor2;
 	}
 
-	//The robot moves according to plan. Note the commented out method.
+	//The robot moves according to plan. The robot may stay a certain distance from a wall.
 	ClearTimer(T2);
+	ClearTimer(T4);
 	while (time1[T2] < time*1000) //time1 is in milliseconds? yes
 	{
 		timeDebug = time;
-		//straighten(angle);
+		followWall(angle);
 	}
 
 	//If there is a given target value, set that as the current position, assuming the
@@ -369,9 +321,6 @@ void turnNumDegrees(int value)
 		compassValue = SensorValue[compassSensor];
 		nxtDisplayBigStringAt(0,31,"%i",compassValue);
 	}
-
-	//Not needed because of compass sensor
-	//changeDirectionVariable(direction - value);
 }
 
 
@@ -442,9 +391,6 @@ void targetAngleTurn(double xTarget, double yTarget, bool moveBackwards)
 
 	//Turn to planned place.
 	turnNumDegrees(angleToTravel);
-
-	//Not needed because of compass sensor.
-	changeDirectionVariable(angleToTravel - direction);
 }
 
 //Calls a 2-step process that makes the robot turn towards the target, then go forwards to it.
@@ -465,23 +411,22 @@ void hook()
 
 	if (hasEncoder)
 	{
-		hookDown = true;
-		motor[hookMotor] = -50;
+		motor[hookMotor] = -100;
 		nMotorEncoder[hookMotor] = 0;
-		nMotorEncoderTarget[hookMotor] = 	-150;
+		nMotorEncoderTarget[hookMotor] = 	-190;
 		ClearTimer(T1);
-		while (nMotorEncoder[hookMotor] > -150 && time1[T1] < 1500)
+		//while (time1[T1] < 1500)
+		while (nMotorEncoder[hookMotor] > -1900 && time1[T1] < 1500)
 		{
 			//Idle Loop
 		}
+
+		motor[hookMotor] = 0;
+		holdingTube = true;
 	}
 	else
 	{
-		motor[hookMotor] = 0;
-		holdingTube = true;
-
 		//Without an encoder
-		hookDown = true;
 		motor[hookMotor] = -30;
 
 		wait1Msec(1500);
@@ -489,6 +434,8 @@ void hook()
 		motor[hookMotor] = 0;
 		holdingTube = true;
 	}
+
+	wait1Msec(500);
 }
 
 
@@ -501,9 +448,7 @@ void unhook()
 	if (hasEncoder)
 	{
 		//With encoder.
-
-		hookDown = false;
-		motor[hookMotor] = 50;
+		motor[hookMotor] = 100;
 		nMotorEncoder[hookMotor] = 0;
 		nMotorEncoderTarget[hookMotor] = 	190;
 		ClearTimer(T1);
@@ -511,15 +456,13 @@ void unhook()
 		{
 			//Idle Loop
 		}
+
+		motor[hookMotor] = 0;
+		holdingTube = false;
 	}
 	else
 	{
 		//Without the encoder.
-
-		motor[hookMotor] = 0;
-		holdingTube = false;
-
-		hookDown = false;
 		motor[hookMotor] = 30;
 
 		wait1Msec(500);
@@ -527,6 +470,8 @@ void unhook()
 		motor[hookMotor] = 0;
 		holdingTube = false;
 	}
+
+	wait1Msec(500);
 }
 
 
@@ -614,7 +559,6 @@ void moveLinearSlide(double height)
 	currentLinearHeight = height;
 }
 
-
 void mainMethod()
 {
 	//Give compass sensor time to gather its BEARINGS to produce an accurate
@@ -622,7 +566,12 @@ void mainMethod()
 	wait1Msec(50);
 
 	//Initialization
-	firstCompass = SensorValue[compassSensor];
+	firstCompass = SensorValue[compassSensor]+180;
+	while (firstCompass >= 360)
+	{
+		firstCompass -= 360;
+	}
+
 	currentLinearHeight = 0;
 
 	currentx = 0;
@@ -633,51 +582,58 @@ void mainMethod()
 	cmPerSecond = 50;	//Not going to calculate speed anymore because there isn't a touch sensor.
 
 	StartTask(keepHookMotorStill);
-	
-	
+
 	//Testing Zone
-	//dropBalls();
-	//servo[ballDoor] = 110;
-	//wait1Msec(2000);
-	//servo[ballDoor] = 256;
-	//wait1Msec(1000000000000);
-	
-	
-	
-	
+ //	hook();
+ //	//wait1Msec(1000);
+ //	unhook();
+ //	wait1Msec(1000);
+ //	//hook();
+	//wait1Msec(1000000000000000000000000000000000);
+
+
+
+
 	//Get ready for the hooking and make sure it doesn't trip on itself
 	//servo[ballDoor] = 257;
-	moveLinearSlide(1);
+	moveLinearSlide(1); // goes up 1 jenny foot
 	unhook();
 
-	////Jumpstart time for wheels that can get stuck.
-	motor[motor1] = 100;
-	motor[motor2] = 100;
+	//Jumpstart time for wheels that can get stuck.
+	motor[motor1] = -100;
+	motor[motor2] = -100;
 	wait1Msec(100);
 
-	moveForTimePeriod(10,10,3,false,-1,-1,false);
+	moveForTimePeriod(-20,-20,2,false,-1,-1,false); //motor1 power, motor2 power, time to go (seconds),
+																								//true=go backwards, positionx, positiony, drift
+																								//last 4 things not needed.. just copy these.
+	//positive forward, negative backwards.
 
 	motor[motor1] = 0;
 	motor[motor2] = 0;
-	wait1Msec(100);
+	wait1Msec(1000);
+
+	straighten(firstCompass,2);
+
+	moveForTimePeriod(-20,-20,1,false,-1,-1,false);
+
+	//Rough turn to tube.
+	straighten(firstCompass+80,1);//+ 80 means 80 degrees to right and 1 means to right
+
+	motor[motor1] = 0;
+	motor[motor2] = 0;
 
 	moveLinearSlide(2);
+	//dropBalls();
+	moveLinearSlide(0.5);
 
-	straighten(firstCompass+30,false);
-
-	moveForTimePeriod(10,10,1,false,-1,-1,false);
-
-	hook();
-	moveForTimePeriod(-10,-10,0.5,false,-1,-1,false);
-	unhook();
-	moveForTimePeriod(10,10,0.5,false,-1,-1,false);
-	//dropBalls()
-
+	wait1Msec(500);
+	
 	hook();
 	
-	straighten(firstCompass-148,false);
+	wait1Msec(500);
 
-
+	straighten(firstCompass-140,2);
 }
 
 
