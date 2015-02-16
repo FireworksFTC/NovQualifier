@@ -1,10 +1,11 @@
 #pragma config(Hubs,  S1, HTMotor,  HTMotor,  HTServo,  none)
+#pragma config(Sensor, S1,     ,               sensorI2CMuxController)
 #pragma config(Sensor, S3,     compassSensor,  sensorI2CHiTechnicCompass)
 #pragma config(Sensor, S4,     sonarSensor,    sensorSONAR)
 #pragma config(Motor,  motorA,          ballMotor,     tmotorNXT, PIDControl, encoder)
 #pragma config(Motor,  motorC,          hookMotor,     tmotorNXT, PIDControl, reversed, encoder)
-#pragma config(Motor,  mtr_S1_C1_1,     motor1,        tmotorTetrix, openLoop)
-#pragma config(Motor,  mtr_S1_C1_2,     motor2,        tmotorTetrix, openLoop, reversed)
+#pragma config(Motor,  mtr_S1_C1_1,     motor1,        tmotorTetrix, openLoop, reversed)
+#pragma config(Motor,  mtr_S1_C1_2,     motor2,        tmotorTetrix, openLoop)
 #pragma config(Motor,  mtr_S1_C2_1,     motorF,        tmotorTetrix, PIDControl, encoder)
 #pragma config(Motor,  mtr_S1_C2_2,     linearSlide,   tmotorTetrix, PIDControl, encoder)
 #pragma config(Servo,  srvo_S1_C3_1,    servo1,               tServoNone)
@@ -90,11 +91,11 @@ task keepHookMotorStill()
 	{
 		if (holdingTube == true)
 		{
-			motor[hookMotor] = 20;
+			motor[hookMotor] = -100;
 		}
 		else
 		{
-			motor[hookMotor] = 0;
+			motor[hookMotor] = 20;
 		}
 
 		//This is performed every 0.1 second so it doesn't clog up
@@ -138,7 +139,7 @@ void straighten(int angleToFace,int way)
 	{
 		//Keep on turning in the closest direction until you get the perfect number. right overrides
 		//the SensorValue comparison turn.
-		if (((SensorValue[compassSensor] < angleToFace) != (way == 1)) && (way == 1))
+		if (way == 1) //want to turn right
 		{
 			//turning right
 			motor[motor1] = -20;
@@ -146,12 +147,12 @@ void straighten(int angleToFace,int way)
 		}
 		else
 		{
-			if(((SensorValue[compassSensor] > angleToFace) != (way == 2)) && (way == true))
+			if(way == 2)//want to turn left
 			{
 				motor[motor1] = 50;
 				motor[motor2] = -20;
 			}
-			else
+			else //robot decides
 			{
 				if (SensorValue[compassSensor] > angleToFace)
 				{
@@ -175,7 +176,9 @@ void straighten(int angleToFace,int way)
 void followWall(int compass)
 {
 	//Can make it so it doesn't have to follow a wall.
-	if (time1(T4) > 100)
+// 200 is milliseconds 
+// larger time makes robot go smoother because the motor power is changed less
+	if (time1(T4) > 200)
 	{
 		if (SensorValue[compassSensor] > compass)
 		{
@@ -246,7 +249,7 @@ void moveForTimePeriod(double powerMotor1, double powerMotor2, double time, bool
 	while (time1[T2] < time*1000) //time1 is in milliseconds? yes
 	{
 		timeDebug = time;
-		followWall(angle);
+		//followWall(angle); // going to try to follow the direction according to compass
 	}
 
 	//If there is a given target value, set that as the current position, assuming the
@@ -413,10 +416,9 @@ void hook()
 	{
 		motor[hookMotor] = -100;
 		nMotorEncoder[hookMotor] = 0;
-		nMotorEncoderTarget[hookMotor] = 	-190;
 		ClearTimer(T1);
 		//while (time1[T1] < 1500)
-		while (nMotorEncoder[hookMotor] > -1900 && time1[T1] < 1500)
+		while (nMotorEncoder[hookMotor] > 160 && time1[T1] < 1500)
 		{
 			//Idle Loop
 		}
@@ -448,11 +450,10 @@ void unhook()
 	if (hasEncoder)
 	{
 		//With encoder.
-		motor[hookMotor] = 100;
-		nMotorEncoder[hookMotor] = 0;
-		nMotorEncoderTarget[hookMotor] = 	190;
+		motor[hookMotor] = 100;// 100 is the speed in percentage of motor(100 is highest)
+		nMotorEncoder[hookMotor] = 0; // encoder tracks how far the hook went
 		ClearTimer(T1);
-		while (nMotorEncoder[hookMotor] > -150 && time1[T1] < 1500)
+		while (nMotorEncoder[hookMotor] > -160 && time1[T1] < 1500)
 		{
 			//Idle Loop
 		}
@@ -566,11 +567,7 @@ void mainMethod()
 	wait1Msec(50);
 
 	//Initialization
-	firstCompass = SensorValue[compassSensor]+180;
-	while (firstCompass >= 360)
-	{
-		firstCompass -= 360;
-	}
+	firstCompass = SensorValue[compassSensor];
 
 	currentLinearHeight = 0;
 
@@ -584,12 +581,12 @@ void mainMethod()
 	StartTask(keepHookMotorStill);
 
 	//Testing Zone
- //	hook();
+ 	//hook();
  //	//wait1Msec(1000);
  //	unhook();
- //	wait1Msec(1000);
- //	//hook();
-	//wait1Msec(1000000000000000000000000000000000);
+ //	wait1Msec(2000);
+ //	hook();
+	//wait1Msec(10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000);
 
 
 
@@ -597,46 +594,47 @@ void mainMethod()
 	//Get ready for the hooking and make sure it doesn't trip on itself
 	//servo[ballDoor] = 257;
 	moveLinearSlide(1); // goes up 1 jenny foot
-	unhook();
 
 	//Jumpstart time for wheels that can get stuck.
-	motor[motor1] = -100;
-	motor[motor2] = -100;
+	motor[motor1] = 100;
+	motor[motor2] = 100;
 	wait1Msec(100);
 
-	moveForTimePeriod(-20,-20,2,false,-1,-1,false); //motor1 power, motor2 power, time to go (seconds),
-																								//true=go backwards, positionx, positiony, drift
-																								//last 4 things not needed.. just copy these.
-	//positive forward, negative backwards.
+	//Goes off the ramp.
+	moveForTimePeriod(40,40,3,false,-1,-1,false); //motor1 power, motor2 power, time to go (seconds),
+																									//true=go backwards, positionx, positiony, drift
+																									//last 4 things not needed.. just copy these.
+																									//positive forward, negative backwards.
 
 	motor[motor1] = 0;
 	motor[motor2] = 0;
 	wait1Msec(1000);
 
-	straighten(firstCompass,2);
+	//about firstcompass+140
+	straighten(firstCompass+250,1);// 2 is direction which is right; 1 is left; 0 is robot decides from which way is closer; straight uses movefortimeperiod method
 
-	moveForTimePeriod(-20,-20,1,false,-1,-1,false);
-
-	//Rough turn to tube.
-	straighten(firstCompass+80,1);//+ 80 means 80 degrees to right and 1 means to right
+	unhook();
+	
+	moveForTimePeriod(-20,-20,2.5,false,-1,-1,false);
 
 	motor[motor1] = 0;
 	motor[motor2] = 0;
-
+	
 	moveLinearSlide(2);
-	//dropBalls();
+	dropBalls();
 	moveLinearSlide(0.5);
 
 	wait1Msec(500);
-	
+
 	hook();
-	
+
 	wait1Msec(500);
 
-	straighten(firstCompass-140,2);
+	straighten(firstCompass+210,1);
+	// hook grabs tube and turns toward parking zone
+	
+	moveForTimePeriod(20,20,4,false,-1,-1,false);// false means backwards and no compensation for drift
 }
-
-
 
 
 
