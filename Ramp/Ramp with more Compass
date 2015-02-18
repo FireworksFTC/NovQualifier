@@ -54,7 +54,9 @@ int compassValue;
 int totalEncoder;
 int amountForFullHeight;
 int targetEncoder;
-int currentLinearHeight;
+double currentLinearHeight;
+double targetLinearHeight;
+bool isNavigating = false;
 
 double distanceTravelled;
 double motor1Speed;
@@ -103,6 +105,61 @@ task keepHookMotorStill()
 		wait1Msec(100);
 	}
 }
+
+task keepCollectorRunning()
+{
+	ClearTimer(T3);
+	while (time1(T3) < 4000)
+	{
+		motor[ballMotor] = -30;
+	}
+	motor[ballMotor] = 0;
+}
+
+//Raise the linear slide to a given height. Max height is 4 ft. Enter the height in feet (double).
+task moveLinearSlide()
+{
+	while (true)
+	{
+		if (targetLinearHeight != currentLinearHeight)
+		{
+			isNavigating = true;
+
+			bool goingUp;
+			double timeForMaxHeight = 20;
+
+			double ratio = targetLinearHeight/4.0;
+
+			double time = abs(currentLinearHeight/4.0*timeForMaxHeight - timeForMaxHeight*ratio);
+
+			//Going down.
+			if (targetLinearHeight < currentLinearHeight)
+			{
+				motor[linearSlide] = -127;
+				goingUp = false;
+			}
+
+			//Going up
+			if (targetLinearHeight > currentLinearHeight)
+			{
+				motor[linearSlide] = 127;
+				goingUp = true;
+			}
+
+			//Start moving
+			ClearTimer(T1);
+			while(time1(T1) < time*1000)
+			{
+				//It's moving! :D
+			}
+
+			motor[linearSlide] = 0;
+			currentLinearHeight = targetLinearHeight;
+			isNavigating = false;
+		}
+	}
+}
+
 
 //This method makes use of the compass sensor, and it is needed to straighten (as the name says)
 //the robot to an angle perpendicular to the walls after it slides down the ramp. The robot's
@@ -176,7 +233,7 @@ void straighten(int angleToFace,int way)
 void followWall(int compass)
 {
 	//Can make it so it doesn't have to follow a wall.
-// 200 is milliseconds 
+// 200 is milliseconds
 // larger time makes robot go smoother because the motor power is changed less
 	if (time1(T4) > 200)
 	{
@@ -414,7 +471,7 @@ void hook()
 
 	if (hasEncoder)
 	{
-		motor[hookMotor] = -100;
+		motor[hookMotor] = -80;
 		nMotorEncoder[hookMotor] = 0;
 		ClearTimer(T1);
 		//while (time1[T1] < 1500)
@@ -507,59 +564,6 @@ void dropBalls()
 }
 
 
-//Raise the linear slide to a given height. Max height is 4 ft. Enter the height in feet (double).
-
-void moveLinearSlide(double height)
-{
-	bool goingUp;
-	double timeForMaxHeight = 29; //CHANGE WHEN MEASURED (SECONDS)
-
-	double ratio = height/4.0;
-
-	double time = abs(currentLinearHeight/4.0*timeForMaxHeight - timeForMaxHeight*ratio);
-
-	//Going down.
-	if (height < currentLinearHeight)
-	{
-		motor[linearSlide] = -127;
-		goingUp = false;
-	}
-
-	//Going up
-	if (height > currentLinearHeight)
-	{
-		motor[linearSlide] = 127;
-		goingUp = true;
-	}
-
-	//Start moving
-	ClearTimer(T1);
-	while(time1(T1) < time*1000)
-	{
-		//too close.  make sure the string doesn't break
-		//but this screws with the timing part so meh ;-;
-
-		//if (time - time1(T1)*1000 < 1 && height < 0.5)
-		//{
-		//	if (goingUp == false)
-		//	{
-		//		motor[linearSlide] = -5;
-		//	}
-		//}
-
-		//if (time - time1(T1)*1000 < 1 && height < 3.5)
-		//{
-		//	if (goingUp == true)
-		//	{
-		//		motor[linearSlide] = 5;
-		//	}
-		//}
-	}
-
-	motor[linearSlide] = 0;
-	currentLinearHeight = height;
-}
-
 void mainMethod()
 {
 	//Give compass sensor time to gather its BEARINGS to produce an accurate
@@ -579,61 +583,56 @@ void mainMethod()
 	cmPerSecond = 50;	//Not going to calculate speed anymore because there isn't a touch sensor.
 
 	StartTask(keepHookMotorStill);
-
-	//Testing Zone
- 	//hook();
- //	//wait1Msec(1000);
- //	unhook();
- //	wait1Msec(2000);
- //	hook();
-	//wait1Msec(10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000);
-
-
-
+	StartTask(keepCollectorRunning);
+	StartTask(moveLinearSlide);
 
 	//Get ready for the hooking and make sure it doesn't trip on itself
-	//servo[ballDoor] = 257;
-	moveLinearSlide(1); // goes up 1 jenny foot
+	servo[ballDoor] = 257;
 
 	//Jumpstart time for wheels that can get stuck.
 	motor[motor1] = 100;
 	motor[motor2] = 100;
 	wait1Msec(100);
-
+  targetLinearHeight = 2; //DOESN'T GO UP?
 	//Goes off the ramp.
 	moveForTimePeriod(40,40,3,false,-1,-1,false); //motor1 power, motor2 power, time to go (seconds),
 																									//true=go backwards, positionx, positiony, drift
 																									//last 4 things not needed.. just copy these.
-																									//positive forward, negative backwards.
-
-	motor[motor1] = 0;
+			  																					//positive forward, negative backwards.
+  motor[motor1] = 0;
 	motor[motor2] = 0;
 	wait1Msec(1000);
 
 	//about firstcompass+140
-	straighten(firstCompass+250,1);// 2 is direction which is right; 1 is left; 0 is robot decides from which way is closer; straight uses movefortimeperiod method
+	straighten(firstCompass+255,1);// 2 is direction which is right; 1 is left; 0 is robot decides from which way is closer; straight uses movefortimeperiod method
 
-	unhook();
-	
+	unhook();// hook goes UP, jenny
+
 	moveForTimePeriod(-20,-20,2.5,false,-1,-1,false);
 
 	motor[motor1] = 0;
 	motor[motor2] = 0;
-	
-	moveLinearSlide(2);
+
+	while (isNavigating == true)
+	{
+	}
 	dropBalls();
-	moveLinearSlide(0.5);
+	targetLinearHeight = 0.5;
 
 	wait1Msec(500);
 
 	hook();
 
-	wait1Msec(500);
+	wait1Msec(1000);
+	 // hook grabs tube and goes toward parking zone
 
-	straighten(firstCompass+210,1);
-	// hook grabs tube and turns toward parking zone
+	//straighten(firstCompass+255,0);
 	
-	moveForTimePeriod(20,20,4,false,-1,-1,false);// false means backwards and no compensation for drift
+	//moveForTimePeriod(50,50,1,false,-1,-1,false);// false means backwards and no compensation for drift
+	
+	//straighten(firstCompass+75,2);// 2 means turning right and 210 is the degrees
+	
+	moveForTimePeriod(50,50,2.5,false,-1,-1,false);// false means backwards and no compensation for drift
 }
 
 
