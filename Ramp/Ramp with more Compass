@@ -538,29 +538,11 @@ void unhook()
 
 void dropBalls()
 {
-	bool firstRobot = false;
+	//2nd robot (door)
 
-	if (firstRobot)
-	{
-		//1st robot (zipties)
-		motor[ballMotor] = 50;
-		nMotorEncoder[ballMotor] = 0;
-		nMotorEncoderTarget[ballMotor] = 1080;
-		while(nMotorEncoder[ballMotor] < 1080)
-		{
-			//idle loop
-		}
-
-		motor[ballMotor] = 0;
-	}
-	else
-	{
-		//2nd robot (door)
-
-		servo[ballDoor] = 110;
-		wait1Msec(2000);
-		servo[ballDoor] = 256;
-	}
+	servo[ballDoor] = 110;
+	wait1Msec(2000);
+	servo[ballDoor] = 256;
 }
 
 
@@ -593,7 +575,7 @@ void mainMethod()
 	motor[motor1] = 100;
 	motor[motor2] = 100;
 	wait1Msec(100);
-  targetLinearHeight = 2; //DOESN'T GO UP?
+  targetLinearHeight = 2; //DOES IT GO UP TO THE RIGHT HEIGHT? MAYBE NEEDS CHANGING.
 	//Goes off the ramp.
 	moveForTimePeriod(40,40,3,false,-1,-1,false); //motor1 power, motor2 power, time to go (seconds),
 																									//true=go backwards, positionx, positiony, drift
@@ -604,11 +586,13 @@ void mainMethod()
 	wait1Msec(1000);
 
 	//about firstcompass+140
-	straighten(firstCompass+255,1);// 2 is direction which is right; 1 is left; 0 is robot decides from which way is closer; straight uses movefortimeperiod method
+	straighten(firstCompass+260,1);// 2 is direction which is right; 1 is left; 0 is robot decides from which way is closer; straight uses movefortimeperiod method
 
 	unhook();// hook goes UP, jenny
 
-	moveForTimePeriod(-20,-20,2.5,false,-1,-1,false);
+	moveForTimePeriod(-20,-20,2,false,-1,-1,false);
+	
+	hook();
 
 	motor[motor1] = 0;
 	motor[motor2] = 0;
@@ -619,20 +603,19 @@ void mainMethod()
 	dropBalls();
 	targetLinearHeight = 0.5;
 
-	wait1Msec(500);
+  // hook grabs tube and goes toward parking zone
 
-	hook();
-
-	wait1Msec(1000);
-	 // hook grabs tube and goes toward parking zone
-
-	//straighten(firstCompass+255,0);
+	//The current angle seems ok, so we are just going to move backwards into the parking zone.
+	//The hook still lets go of the tube, so Isa's dad said someone can add a rubber band so the
+	//hook doesn't slip.  That is a fix for a later day.  Good luck, Rhea >:D
+	moveForTimePeriod(60,60,1.5,false,-1,-1,false);
 	
-	//moveForTimePeriod(50,50,1,false,-1,-1,false);// false means backwards and no compensation for drift
+	motor[motor1] = 0;
+	motor[motor2] = 0;	
 	
-	//straighten(firstCompass+75,2);// 2 means turning right and 210 is the degrees
+	//wait1Msec(1000);
 	
-	moveForTimePeriod(50,50,2.5,false,-1,-1,false);// false means backwards and no compensation for drift
+	moveForTimePeriod(60,60,1.5,false,-1,-1,false);// false means backwards and no compensation for drift
 }
 
 
