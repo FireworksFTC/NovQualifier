@@ -1,0 +1,47 @@
+package com.qualcomm.ftcrobotcontroller.opmodes;
+
+
+import com.qualcomm.robotcore.hardware.DcMotor;
+
+public class PushBotAuto extends PushBotTelemetry
+
+{
+    DcMotor motorRight;
+    DcMotor motorLeft;
+
+    public PushBotAuto ()
+
+    {
+
+
+    }
+    public void init() {
+
+
+        motorRight = hardwareMap.dcMotor.get("motor_2");
+        motorLeft = hardwareMap.dcMotor.get("motor_1");
+        motorLeft.setDirection(DcMotor.Direction.REVERSE);
+
+    }
+
+    @Override public void start ()
+
+    {
+
+        super.start();
+
+
+       //reset_drive_encoders ();
+
+    }
+    @Override public void loop ()
+
+    {
+        motorRight.setPower(0.1);
+        motorLeft.setPower(0.1);
+        telemetry.addData ("18", "State: " + v_state);
+
+    } 
+    private int v_state = 0;
+
+}
